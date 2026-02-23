@@ -1,3 +1,5 @@
+'use client'
+
 import { Job } from "@/lib/types"
 
 export default function JobCard({ job }: { job: Job }) {
