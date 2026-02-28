@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { Job } from "@/lib/types"
 
@@ -12,11 +12,15 @@ export default function JobCard({ job }: { job: Job }) {
     return "Just now"
   }
 
+  // Use internal page for external-sourced jobs, direct url for paid listings
+  const href = job.source === "Paid" ? job.url : `/jobs/${job.id}`
+  const target = job.source === "Paid" ? "_blank" : undefined
+
   return (
     <a
-      href={job.url}
-      target="_blank"
-      rel="noopener noreferrer"
+      href={href}
+      target={target}
+      rel={target ? "noopener noreferrer" : undefined}
       className={`block bg-[#111111] border rounded-xl p-5 hover:bg-[#161616] transition-all group ${
         job.featured ? "featured-glow border-purple-700" : "border-[#1f1f1f] hover:border-[#333]"
       }`}
@@ -48,6 +52,7 @@ export default function JobCard({ job }: { job: Job }) {
         <div className="text-right flex-shrink-0">
           {job.salary && <p className="text-sm font-semibold text-green-400">{job.salary}</p>}
           <p className="text-xs text-gray-500 mt-0.5">{timeAgo(job.posted_at)}</p>
+          <p className="text-xs text-gray-600 mt-0.5">{job.source}</p>
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2 items-center">

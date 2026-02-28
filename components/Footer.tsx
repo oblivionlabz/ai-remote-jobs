@@ -8,7 +8,8 @@ export default function Footer() {
         </div>
         <div className="flex items-center gap-6 text-sm text-gray-500">
           <a href="/post-job" className="hover:text-purple-400 transition-colors">Post a Job</a>
-          <a href="mailto:jobs@airemotejobs.io" className="hover:text-purple-400 transition-colors">Contact</a>
+          <a href="mailto:hello@oblivionlabz.net" className="hover:text-purple-400 transition-colors">Contact</a>
+          <a href="/sitemap.xml" className="hover:text-purple-400 transition-colors">Sitemap</a>
         </div>
       </div>
     </footer>

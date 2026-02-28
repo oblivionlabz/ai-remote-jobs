@@ -1,30 +1,24 @@
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
-import JobCard from "@/components/JobCard"
+import JobList from "@/components/JobList"
 import { fetchAllJobs } from "@/lib/jobs"
 import { getFeaturedJobs } from "@/lib/featured"
 
-export const revalidate = 300 // 5 min ISR
+export const revalidate = 300
 
 export default async function HomePage() {
   let jobs = []
   let paidFeatured = []
 
   try {
-    [jobs, paidFeatured] = await Promise.all([
-      fetchAllJobs(),
-      getFeaturedJobs(),
-    ])
-  } catch (e) {
-    console.error("Failed to fetch jobs", e)
+    ;[jobs, paidFeatured] = await Promise.all([fetchAllJobs(), getFeaturedJobs()])
+  } catch {
     try { jobs = await fetchAllJobs() } catch {}
   }
 
-  // Merge paid featured on top, then organic featured, then regular
-  const organicFeatured = jobs.filter(j => j.featured)
-  const regular = jobs.filter(j => !j.featured)
+  const organicFeatured = jobs.filter((j: any) => j.featured)
+  const regular = jobs.filter((j: any) => !j.featured)
   const allFeatured = [...paidFeatured, ...organicFeatured]
-  const totalCount = jobs.length + paidFeatured.length
 
   return (
     <main className="min-h-screen bg-[#0a0a0a]">
@@ -42,43 +36,11 @@ export default async function HomePage() {
         <p className="text-gray-400 text-lg max-w-2xl mx-auto">
           The fastest-updating job board for AI engineers, ML researchers, LLM developers, and data scientists. All remote.
         </p>
-
-        {/* Search/filter tags */}
-        <div className="flex flex-wrap justify-center gap-2 mt-6">
-          {["All", "LLM", "Machine Learning", "MLOps", "Data Science", "AI Research", "Python", "PyTorch"].map(tag => (
-            <span key={tag} className="text-xs bg-[#111] border border-[#222] text-gray-300 px-3 py-1.5 rounded-full cursor-pointer hover:border-purple-600 hover:text-purple-300 transition-colors">
-              {tag}
-            </span>
-          ))}
-        </div>
       </section>
 
-      {/* Job Listings */}
+      {/* Jobs with search + filter */}
       <section className="max-w-5xl mx-auto px-4 pb-16">
-        {allFeatured.length > 0 && (
-          <div className="mb-4">
-            <h2 className="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-3">⭐ Featured Jobs</h2>
-            <div className="flex flex-col gap-3">
-              {allFeatured.map(job => <JobCard key={job.id} job={job as any} />)}
-            </div>
-          </div>
-        )}
-
-        {regular.length > 0 && (
-          <div>
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 mt-6">Latest Jobs</h2>
-            <div className="flex flex-col gap-3">
-              {regular.map(job => <JobCard key={job.id} job={job} />)}
-            </div>
-          </div>
-        )}
-
-        {jobs.length === 0 && (
-          <div className="text-center text-gray-500 py-20">
-            <p className="text-4xl mb-4">🤖</p>
-            <p>Loading jobs... check back in a moment.</p>
-          </div>
-        )}
+        <JobList featured={allFeatured as any} regular={regular} />
       </section>
 
       {/* CTA Banner */}
