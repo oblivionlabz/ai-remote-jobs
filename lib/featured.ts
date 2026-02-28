@@ -1,80 +1,75 @@
-export interface FeaturedJob {
-  id: string
-  title: string
-  company: string
-  company_logo?: string
-  location: string
-  type: string
-  tags: string[]
-  url: string
-  posted_at: string
-  salary?: string
-  description?: string
-  featured: true
-  source: string
-  plan: string
-  paid_at: string
+export interface FeaturedJobEntry {
+  id: string;
+  company: string;
+  title: string;
+  plan: string;
+  email: string;
+  url: string;
+  paid_at: string;
+  featured: boolean;
+  location?: string;
+  type?: string;
+  tags?: string[];
+  posted_at?: string;
+  source?: string;
 }
 
-const REPO = 'oblivionlabz/ai-remote-jobs'
-const FILE_PATH = 'featured_jobs.json'
-const GH_API = `https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`
+const REPO = "oblivionlabz/ai-remote-jobs";
+const FILE_PATH = "data/featured_jobs.json";
+const DEFAULT_BRANCH = "main";
 
-export async function getFeaturedJobs(): Promise<FeaturedJob[]> {
+export async function getFeaturedJobs(): Promise<FeaturedJobEntry[]> {
   try {
-    const res = await fetch(GH_API, {
-      headers: {
-        'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json',
-      },
-      next: { revalidate: 300 } // 5 min cache
-    })
-    if (!res.ok) return []
-    const data = await res.json()
-    const content = Buffer.from(data.content, 'base64').toString('utf-8')
-    const jobs: FeaturedJob[] = JSON.parse(content)
-    // Only show jobs from last 60 days
-    const cutoff = Date.now() - 60 * 24 * 60 * 60 * 1000
-    return jobs.filter(j => new Date(j.paid_at).getTime() > cutoff)
-  } catch {
-    return []
+    const rawUrl = `https://raw.githubusercontent.com/${REPO}/${DEFAULT_BRANCH}/${FILE_PATH}`;
+    const res = await fetch(rawUrl, { next: { revalidate: 300 } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error("getFeaturedJobs error:", e);
+    return [];
   }
 }
 
-export async function addFeaturedJob(job: FeaturedJob): Promise<boolean> {
+export async function addFeaturedJob(job: FeaturedJobEntry): Promise<boolean> {
+  const GH = process.env.GITHUB_TOKEN;
+  if (!GH) {
+    console.error("GITHUB_TOKEN not configured");
+    return false;
+  }
   try {
-    // Get current file + sha
-    const res = await fetch(GH_API, {
-      headers: {
-        'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json',
+    // Get current file SHA (required for updates)
+    const shaRes = await fetch(
+      `https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`,
+      { headers: { Authorization: `Bearer ${GH}`, Accept: "application/vnd.github+json" }, cache: "no-store" }
+    );
+    const current = await getFeaturedJobs();
+    current.unshift(job); // newest first
+    const encoded = Buffer.from(JSON.stringify(current, null, 2)).toString("base64");
+    const body: Record<string, unknown> = {
+      message: `feat: add featured job ${job.company}`,
+      content: encoded,
+    };
+    if (shaRes.ok) {
+      const shaData = await shaRes.json();
+      body.sha = shaData.sha;
+    }
+    const res = await fetch(
+      `https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${GH}`,
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       }
-    })
-    if (!res.ok) return false
-    const data = await res.json()
-    const sha = data.sha
-    const current: FeaturedJob[] = JSON.parse(Buffer.from(data.content, 'base64').toString('utf-8'))
-
-    // Append new job
-    current.push(job)
-    const newContent = Buffer.from(JSON.stringify(current, null, 2)).toString('base64')
-
-    // Update file
-    const updateRes = await fetch(GH_API, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: `feat: add featured job — ${job.title} @ ${job.company}`,
-        content: newContent,
-        sha,
-      })
-    })
-    return updateRes.ok
-  } catch {
-    return false
+    );
+    if (!res.ok) console.error(`GitHub PUT failed: ${res.status}`);
+    return res.ok;
+  } catch (e) {
+    console.error("addFeaturedJob error:", e);
+    return false;
   }
 }
