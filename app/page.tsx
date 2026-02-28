@@ -49,7 +49,7 @@ export default async function HomePage() {
           <h2 className="text-2xl font-bold text-white mb-2">Hiring AI talent?</h2>
           <p className="text-gray-400 mb-6">Post your job to {jobs.length}+ active AI/ML job seekers. Featured listings get 10x more visibility.</p>
           <a href="/post-job" className="inline-block bg-purple-700 hover:bg-purple-600 text-white font-semibold px-8 py-3 rounded-xl transition-colors">
-            Post a Featured Job — $99 →
+            Post a Job — from $99 →
           </a>
         </div>
       </section>
