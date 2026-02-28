@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { plan, company, title, email } = body
+    const { plan, company, title, email, url } = body
 
     const plans: Record<string, { price: number; label: string; days: number }> = {
       basic:    { price: 9900,  label: "Basic Listing (30 days)",    days: 30 },
@@ -30,10 +30,10 @@ export async function POST(req: NextRequest) {
         quantity: 1,
       }],
       mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_URL || "https://airemotejobs.io"}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_URL || "https://airemotejobs.io"}/post-job`,
+      success_url: `${process.env.NEXT_PUBLIC_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_URL}/post-job`,
       customer_email: email,
-      metadata: { company, title, plan, days: String(selected.days) },
+      metadata: { company, title, plan, days: String(selected.days), url: url || '' },
     })
 
     return NextResponse.json({ url: session.url })

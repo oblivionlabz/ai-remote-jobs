@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
+import { addFeaturedJob, FeaturedJob } from "@/lib/featured"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" })
 
@@ -13,15 +14,34 @@ export async function POST(req: NextRequest) {
 
   let event
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET || "whsec_placeholder")
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch (err: any) {
     return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 })
   }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session
-    const { company, title, plan } = session.metadata || {}
+    const { company, title, plan, days, url } = session.metadata || {}
+
     console.log(`✅ Payment received: ${plan} — ${title} @ ${company} | $${(session.amount_total || 0) / 100}`)
+
+    const job: FeaturedJob = {
+      id: `paid-${session.id}`,
+      title: title || "Untitled",
+      company: company || "Unknown",
+      location: "Remote",
+      type: "Full-time",
+      tags: ["AI", "Remote", plan || "basic"],
+      url: url || "#",
+      posted_at: new Date().toISOString(),
+      featured: true,
+      source: "Paid",
+      plan: plan || "basic",
+      paid_at: new Date().toISOString(),
+    }
+
+    const saved = await addFeaturedJob(job)
+    console.log(`📝 Job saved to featured list: ${saved}`)
   }
 
   return NextResponse.json({ received: true })

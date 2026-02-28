@@ -2,19 +2,29 @@ import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import JobCard from "@/components/JobCard"
 import { fetchAllJobs } from "@/lib/jobs"
+import { getFeaturedJobs } from "@/lib/featured"
 
-export const revalidate = 1800 // 30 min ISR
+export const revalidate = 300 // 5 min ISR
 
 export default async function HomePage() {
   let jobs = []
+  let paidFeatured = []
+
   try {
-    jobs = await fetchAllJobs()
+    [jobs, paidFeatured] = await Promise.all([
+      fetchAllJobs(),
+      getFeaturedJobs(),
+    ])
   } catch (e) {
     console.error("Failed to fetch jobs", e)
+    try { jobs = await fetchAllJobs() } catch {}
   }
 
-  const featured = jobs.filter(j => j.featured)
+  // Merge paid featured on top, then organic featured, then regular
+  const organicFeatured = jobs.filter(j => j.featured)
   const regular = jobs.filter(j => !j.featured)
+  const allFeatured = [...paidFeatured, ...organicFeatured]
+  const totalCount = jobs.length + paidFeatured.length
 
   return (
     <main className="min-h-screen bg-[#0a0a0a]">
@@ -45,11 +55,11 @@ export default async function HomePage() {
 
       {/* Job Listings */}
       <section className="max-w-5xl mx-auto px-4 pb-16">
-        {featured.length > 0 && (
+        {allFeatured.length > 0 && (
           <div className="mb-4">
             <h2 className="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-3">⭐ Featured Jobs</h2>
             <div className="flex flex-col gap-3">
-              {featured.map(job => <JobCard key={job.id} job={job} />)}
+              {allFeatured.map(job => <JobCard key={job.id} job={job as any} />)}
             </div>
           </div>
         )}
